@@ -213,12 +213,22 @@
                 if (binding.scrollY) {
                     if (typeof binding.scrollY === 'function') {
                         var setScrollY = function () {
-                            var body = $(element).find('.dataTables_scrollBody');
-                            body.height($.proxy(binding.scrollY, body)());
+                            var body = $(element).parent();
+                            if (body.length > 0) {
+                                body.height($.proxy(binding.scrollY, body)());
+                            }
                         };
                         $(window).resize(setScrollY);
-                        setTimeout(setScrollY, 0);
-                        return binding.scrollY();
+                        setTimeout(function () {
+                            $(element).dataTable()._fnAdjustColumnSizing(true);
+                            setScrollY();
+                        }, 100);
+                        try {
+                            return binding.scrollY() || 500;
+                        }
+                        catch (err) {
+                            return 500;
+                        }
                     }
                     else {
                         return binding.scrollY;
