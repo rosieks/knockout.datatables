@@ -1,0 +1,54 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+    <link href="Content/bootstrap/bootstrap.css" rel="stylesheet" />
+    <link href="Content/bootstrap/bootstrap-theme.css" rel="stylesheet" />
+    <link href="Content/dataTables.scroller.css" rel="stylesheet" />
+    <script src="Scripts/jquery-2.0.3.js"></script>
+    <script src="Scripts/jquery.dataTables.js"></script>
+    <script src="Scripts/dataTables.scroller.js"></script>
+    <script src="Scripts/knockout-2.3.0.debug.js"></script>
+    <script src="Scripts/knockout.datatables.js"></script>
+</head>
+<body>
+    <div class="container">
+        <table class="table" data-bind="datatables: grid"></table>
+        <!--<ul data-bind="foreach: grid.datasource.items">
+            <li data-bind="text: Id" />
+        </ul>-->
+        <div>Zaznaczony element ma ID: <!-- ko text: grid.selectedRow() && grid.selectedRow().Id --><!-- /ko --></div>
+    </div>
+    <script type="text/javascript">
+        var data = [];
+        for (var i = 0; i < 1000; i++) {
+            data.push({ Id: ko.observable(i), Name: 'Unibep ' + i, Code: parseInt(Math.random() * 100), IsSelected: ko.observable(false), Group: Math.ceil(i / 3) });
+        }
+        var items = ko.gridModel.inMemory(data);
+        var vm = {
+            grid: {
+                datasource: items,
+                columns: [
+                    ko.dtColumn({
+                        template: '<td><input type="checkbox" data-bind="checked: IsSelected"></td>'
+                    }),
+                    ko.dtColumn('Id'),
+                    ko.dtColumn('Name', 'Nazwa'),
+                    ko.dtColumn({
+                        displayName: 'Kod',
+                        template: '<td><span data-bind="html: Code"></span><span data-bind="text: $index"></td>'
+                    })
+                ],
+                scrollY: function () {
+                    return ($(this).offset() && window.innerHeight - 50 - $(this).offset().top) || '500px';
+                },
+                virtualScrolling: true,
+                //group: 'Group',
+                selectedRow: ko.observable(),
+            }
+        };
+
+        ko.applyBindings(vm);
+    </script>
+</body>
+</html>
