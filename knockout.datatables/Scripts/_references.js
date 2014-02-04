@@ -5,3 +5,4 @@
 /// <reference path="jquery.datatables.js" />
 /// <reference path="knockout-2.3.0.js" />
 /// <reference path="knockout.datatables.js" />
+/// <reference path="datatables.colreorder.js" />

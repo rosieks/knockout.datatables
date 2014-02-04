@@ -113,13 +113,12 @@
         init: function (element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
             var binding = valueAccessor();
             var options = {
-                columnDefs: $.each(binding.columns, function (i, val) { val.aTargets = [i]; }),
+                columnDefs: $.each(binding.columns, function (i, val) { val.targets = [i]; }),
                 displayLength: binding.datasource.pageSize(),
                 displayStart: binding.datasource.pageSize() * (binding.datasource.page() - 1),
                 serverSide: true,
                 dom: buildDom(binding),
                 deferRender: binding.deferRender || binding.virtualScrolling,
-                oScroller: binding.virtualScrolling && { loadingIndicator: true },
                 scrollY: setupHeight(binding)
             };
 
@@ -129,8 +128,8 @@
                 var start = data.start,
                     pageSize = data.length,
                     page = start / pageSize + 1,
-                    sortField = binding.columns[data.sort[0].column].data(undefined, 'sort'),
-                    sortOrder = data.sort[0].dir;
+                    sortField = binding.columns[data.order[0].column].data(undefined, 'sort'),
+                    sortOrder = data.order[0].dir;
 
                 binding.datasource.page(page);
                 binding.datasource.pageSize(pageSize);
@@ -206,7 +205,7 @@
                     return binding.dom;
                 }
 
-                return 'ti' + (binding.virtualScrolling === true ? 'S' : 'p');
+                return (binding.allowColumnReorder === true ? 'R' : '') + 'ti' + (binding.virtualScrolling === true ? 'S' : 'p');
             }
 
             function setupHeight(binding) {
@@ -237,4 +236,4 @@
             }
         }
     };
-})($, window.ko);
+})(window.$, window.ko);
