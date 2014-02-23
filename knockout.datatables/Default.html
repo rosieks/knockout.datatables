@@ -6,12 +6,19 @@
     <link href="Content/bootstrap/bootstrap-theme.css" rel="stylesheet" />
     <link href="Content/dataTables.scroller.css" rel="stylesheet" />
     <link href="Content/ColReorder.css" rel="stylesheet" />
-    <script src="Scripts/jquery-2.0.3.js"></script>
+    <script src="Scripts/jquery-2.1.0.js"></script>
     <script src="Scripts/jquery.dataTables.js"></script>
     <script src="Scripts/dataTables.scroller.js"></script>
     <script src="Scripts/dataTables.colReorder.js"></script>
-    <script src="Scripts/knockout-2.3.0.debug.js"></script>
+    <script src="Scripts/dataTables.tableTools.js"></script>
+    <script src="Scripts/knockout-3.0.0.debug.js"></script>
+    <script src="Scripts/knockout-projections.js"></script>
     <script src="Scripts/knockout.datatables.js"></script>
+    <style>
+        div.DTS tbody tr.selected {
+            background-color: red;
+        }
+    </style>
 </head>
 <body>
     <div>test</div>
@@ -20,7 +27,8 @@
         <!--<ul data-bind="foreach: grid.datasource.items">
             <li data-bind="text: Id" />
         </ul>-->
-        <div>Zaznaczony element ma ID: <!-- ko text: grid.selectedRow() && grid.selectedRow().Id --><!-- /ko --></div>
+        <div>Zaznaczony element ma ID: <!-- ko text: grid.selected() && grid.selected().Id --><!-- /ko --></div>
+        <button data-bind="click: select">Test</button>
     </div>
     <script type="text/javascript">
         var data = [];
@@ -48,7 +56,12 @@
                 virtualScrolling: true,
                 allowColumnReorder: true,
                 //group: 'Group',
-                selectedRow: ko.observable(),
+                selected: ko.observable()
+                //selected: 'IsSelected'
+            },
+            select: function () {
+                items.items()[0].IsSelected(!items.items()[0].IsSelected());
+                //vm.grid.selected(vm.grid.selected() ? undefined : vm.grid.datasource.items()[0]);
             }
         };
 

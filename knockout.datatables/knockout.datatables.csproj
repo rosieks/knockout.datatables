@@ -59,6 +59,10 @@
   <ItemGroup>
     <Content Include="Content\ColReorder.css" />
     <Content Include="Readme.md" />
+    <None Include="Scripts\jquery-2.1.0.intellisense.js" />
+    <Content Include="Scripts\jquery-2.1.0.js" />
+    <Content Include="Scripts\jquery-2.1.0.min.js" />
+    <Content Include="Scripts\jquery-2.1.0.min.map" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
@@ -79,23 +83,34 @@
     <Content Include="Content\fonts\glyphicons-halflings-regular.woff" />
     <Content Include="Content\fonts\glyphicons-halflings-regular.ttf" />
     <Content Include="Content\fonts\glyphicons-halflings-regular.eot" />
-    <None Include="Scripts\jquery-2.0.3.intellisense.js" />
     <Content Include="Scripts\bootstrap.js" />
-    <Content Include="Scripts\bootstrap.min.js" />
-    <Content Include="Scripts\dataTables.colReorder.js" />
-    <Content Include="Scripts\dataTables.scroller.js" />
-    <Content Include="Scripts\jquery-2.0.3.js" />
-    <Content Include="Scripts\jquery-2.0.3.min.js" />
+    <Content Include="Scripts\bootstrap.min.js">
+      <DependentUpon>bootstrap.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\dataTables.colReorder.js">
+      <DependentUpon>jquery.dataTables.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\dataTables.scroller.js">
+      <DependentUpon>jquery.dataTables.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\dataTables.tableTools.js">
+      <DependentUpon>jquery.dataTables.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\dataTables.tableTools.min.js">
+      <DependentUpon>dataTables.tableTools.js</DependentUpon>
+    </Content>
     <Content Include="Scripts\jquery.dataTables.js" />
-    <Content Include="Scripts\knockout-2.3.0.debug.js" />
-    <Content Include="Scripts\knockout-2.3.0.js" />
+    <Content Include="Scripts\knockout-3.0.0.debug.js" />
+    <Content Include="Scripts\knockout-3.0.0.js" />
+    <Content Include="Scripts\knockout-projections.js" />
     <Content Include="Scripts\knockout.datatables.js" />
     <Content Include="Scripts\knockout.datatables.min.js.map">
       <DependentUpon>knockout.datatables.js</DependentUpon>
     </Content>
     <None Include="Scripts\_references.js" />
+    <Content Include="Scripts\knockout.mapping-latest.debug.js" />
+    <Content Include="Scripts\knockout.mapping-latest.js" />
     <Content Include="Web.config" />
-    <Content Include="Scripts\jquery-2.0.3.min.map" />
     <Content Include="Scripts\_references.min.js.map">
       <DependentUpon>_references.js</DependentUpon>
     </Content>

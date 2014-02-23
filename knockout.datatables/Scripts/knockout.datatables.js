@@ -15,7 +15,9 @@
             sortField: sortField,
             sortOrder: sortOrder,
             totalRows: totalRows,
-            items: items
+            items: items,
+            load: load,
+            store: store,
         };
 
         _subscribe();
@@ -23,9 +25,9 @@
 
         return model;
 
-        function _requestData() {
+        function _requestData(changedValue) {
             console.log('Request ' + model.pageSize() + 'rows');
-            requestData(model).done(function (items, totalRows) {
+            requestData(model, changedValue).done(function (items, totalRows) {
                 model.totalRows(totalRows);
                 model.items(items);
             });
@@ -33,13 +35,27 @@
 
         function _subscribe() {
             var fields = ['page', 'pageSize', 'sortField', 'sortOrder'];
+            var requestData = function (field) {
+                return function (newValue) {
+                    _requestData({ field: field, newValue: newValue });
+                };
+            };
             for (var i = 0, j = fields.length; i < j; i++) {
-                model[fields[i]].subscribe(_requestData);
+                var field = fields[i];
+                model[field].subscribe(requestData(field));
             }
+        }
+
+        function load(name) {
+
+        }
+
+        function store(name) {
+
         }
     };
     ko.gridModel.inMemory = function (items) {
-        return ko.gridModel(function (model) {
+        return ko.gridModel(function (model, changedValue) {
             var dfd = $.Deferred();
 
             setTimeout(function () {
@@ -47,20 +63,22 @@
                     end = parseInt(model.pageSize() * model.page()),
                     result = [];
 
-                var sortField = model.sortField();
-                var sortMultiplier = model.sortOrder() === 'asc' ? -1 : 1;
-                items.sort(function (i, j) {
+                if (!changedValue || (changedValue.field === 'sortField' || changedValue.field === 'sortOrder')) {
+                    var sortField = model.sortField();
+                    var sortMultiplier = model.sortOrder() === 'asc' ? -1 : 1;
+                    items.sort(function (i, j) {
 
-                    if (ko.unwrap(i[sortField]) < ko.unwrap(j[sortField])) {
-                        return sortMultiplier;
-                    }
-                    else if (ko.unwrap(i[sortField]) > ko.unwrap(j[sortField])) {
-                        return -sortMultiplier;
-                    }
-                    else {
-                        return 0;
-                    }
-                });
+                        if (ko.unwrap(i[sortField]) < ko.unwrap(j[sortField])) {
+                            return sortMultiplier;
+                        }
+                        else if (ko.unwrap(i[sortField]) > ko.unwrap(j[sortField])) {
+                            return -sortMultiplier;
+                        }
+                        else {
+                            return 0;
+                        }
+                    });
+                }
 
                 for (var i = start; i < end && i < items.length; i++) {
                     result.push(items[i]);
@@ -119,7 +137,8 @@
                 serverSide: true,
                 dom: buildDom(binding),
                 deferRender: binding.deferRender || binding.virtualScrolling,
-                scrollY: setupHeight(binding)
+                scrollY: setupHeight(binding),
+                oTableTools: tableTools(binding)
             };
 
             createRowTemplate(options.columnDefs);
@@ -144,32 +163,10 @@
                     binding.rowCallback(row, srcData);
                 }
 
-                if (ko.isObservable(binding.selectedRow)) {
-                    $(row).click(function () {
-                        binding.selectedRow(srcData);
-                    });
-                }
-
                 return row;
             };
-            if (binding.group) {
-                options.drawCallback = function () {
-                    var api = this.api(),
-                        rows = api.rows({ page: 'current' }).nodes(),
-                        last = null;
 
-                    api.data().each(function (item, i) {
-                        var val = ko.unwrap(item[binding.group]);
-                        if (last !== val) {
-                            var collapseButton = '<span class="glyphicon glyphicon-chevron-up"></span>';
-                            $(rows).eq(i).before('<tr class="group"><td colspan="' + api.columns().data().length + '">' + collapseButton + val + '</td></tr>');
-                            last = val;
-                        }
-                    });
-                };
-            }
-
-            $(element).dataTable(options);
+            $(element).dataTable(options).on('column-reorder', onColumnReorder);
 
             binding.datasource.items.subscribe(function (newItems) {
                 var dataTable = $(element).dataTable();
@@ -178,7 +175,9 @@
                 var tableNodes = api.rows().nodes();
                 if (tableNodes.length) {
                     // Unregister each of the table rows from knockout.
-                    ko.utils.arrayForEach(tableNodes, function (node) { ko.cleanNode(node); });
+                    for (var i = 0, j = tableNodes.length; i < j; i++) {
+                        ko.cleanNode(tableNodes[i]);
+                    }
                 }
 
                 dataTable._fnAjaxUpdateDraw({
@@ -190,6 +189,9 @@
 
             function createRowTemplate(columns) {
                 var row = $('<tr>');
+                if (ko.isObservable(binding.selectedRow)) {
+                    row.attr('data-bind', 'css: { "' + (binding.selectedRowClass || 'selected') + '": $data = $parent.selectedRow() }');
+                }
 
                 ko.utils.arrayForEach(columns, function (column) {
                     row.append(column.render());
@@ -205,7 +207,111 @@
                     return binding.dom;
                 }
 
-                return (binding.allowColumnReorder === true ? 'R' : '') + 'ti' + (binding.virtualScrolling === true ? 'S' : 'p');
+                return (binding.allowColumnReorder === true ? 'R' : '') + 'Tti' + (binding.virtualScrolling === true ? 'S' : 'p');
+            }
+
+            function tableTools(binding) {
+                var tableToolsSettings = {
+                    aButtons: []
+                },
+                findRow = function (data) {
+                    var index = binding.datasource.items.indexOf(data);
+                    var tt = $.fn.dataTable.TableTools.fnGetInstance(element);
+                    var row = element.rows[index + 1];
+                    return row;
+                },
+                rowData = function (row) {
+                    var td = row && row.cells[0];
+                    return td && ko.dataFor(td);
+                },
+                toggleRow = function (method) {
+                    return function (elements) {
+                        if (elements) {
+                            setTimeout(function () {
+                                var tt = $.fn.dataTable.TableTools.fnGetInstance(element);
+                                var items = elements instanceof Array ? elements : [elements];
+                                var rows = ko.utils.arrayMap(items, findRow);
+                                var selectedRows = tt.fnGetSelected();
+                                var rowsToToggle = [];
+                                ko.utils.arrayForEach(rows, function (row) {
+                                    if (row && (method === 'fnDeselect' || $(selectedRows).index(row) === -1)) {
+                                        rowsToToggle.push(row);
+                                    }
+                                });
+                                if (rowsToToggle.length > 0) {
+                                    tt[method](rowsToToggle);
+                                }
+                            }, 0);
+                        }
+                    };
+                },
+                onRowKeyDown = function (e) {
+                    if (e.keyCode === 40 || e.keyCode === 38) {
+                        var rows = $(element).find('tbody tr');
+                        var index = rows.index(e.target);
+                        var newIndex = index + (e.keyCode - 39);
+                        if (newIndex >= 0 && newIndex <= rows.length) {
+                            var row = rows.eq(newIndex)[0];
+                            var tt = $.fn.dataTable.TableTools.fnGetInstance(element);
+                            tt.fnSelect(row);
+                            return false;
+                        }
+                    }
+                },
+                toggle;
+                if (ko.isObservable(binding.selected)) {
+                    if (binding.selected.push) {
+                        toggle = function (operation) {
+                            return function (nodes) {
+                                var item = rowData(nodes[0]);
+                                binding.selected[operation](item);
+                            };
+                        };
+
+                        tableToolsSettings.sRowSelect = 'multi';
+                        tableToolsSettings.fnRowDeselected = toggle('remove');
+                        tableToolsSettings.fnRowSelected = toggle('push');
+                    }
+                    else {
+                        tableToolsSettings.sRowSelect = 'single';
+                        tableToolsSettings.fnRowDeselected = function (nodes) {
+                            if (binding.selected() && binding.selected() === rowData(nodes[0])) {
+                                binding.selected(undefined);
+                            }
+                            $(nodes[0]).removeAttr('tabindex').off('keydown', onRowKeyDown);
+                        };
+                        tableToolsSettings.fnRowSelected = function (nodes) {
+                            var data = rowData(nodes[0]);
+                            if (data !== binding.selected()) {
+                                binding.selected(data);
+                            }
+                            $(nodes[0]).attr('tabindex', 0).focus().on('keydown', onRowKeyDown);
+                        };
+                    }
+                    binding.selected.subscribe(toggleRow('fnDeselect'), null, 'beforeChange');
+                    binding.selected.subscribe(toggleRow('fnSelect'));
+                }
+                else if (typeof binding.selected === 'string') {
+                    toggle = function (value) {
+                        return function (nodes) {
+                            var items = nodes instanceof Array ? nodes : [nodes];
+                            for (var i = 0; i < items.length; i++) {
+                                var item = rowData(items[i]);
+                                if (item) {
+                                    item[binding.selected](value);
+                                }
+                            }
+                        };
+                    };
+
+                    tableToolsSettings.sRowSelect = 'multi';
+                    tableToolsSettings.fnRowSelected = toggle(true);
+                    tableToolsSettings.fnRowDeselected = toggle(false);
+                    binding.datasource.items.filter(function (item) { return item[binding.selected]() === true; }).subscribe(toggleRow('fnSelect'));
+                    binding.datasource.items.filter(function (item) { return item[binding.selected]() === false; }).subscribe(toggleRow('fnDeselect'));
+                }
+
+                return tableToolsSettings;
             }
 
             function setupHeight(binding) {
@@ -233,6 +339,10 @@
                         return binding.scrollY;
                     }
                 }
+            }
+
+            function onColumnReorder(a, b, c) {
+                //createRowTemplate()
             }
         }
     };
