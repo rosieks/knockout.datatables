@@ -1,4 +1,8 @@
-﻿/* jshint -W069 */
+﻿// Knockout DataTables 0.1.0
+// (c) Sławomir Rosiek - https://github.com/rosieks/knockout.datatables
+// License: MIT (http://www.opensource.org/licenses/mit-license.php)
+
+/* jshint -W069 */
 
 (function ($, ko) {
     ko.gridModel = function (requestData) {
@@ -195,9 +199,6 @@
 
             function createRowTemplate(columns) {
                 var row = $('<tr>');
-                if (ko.isObservable(binding.selectedRow)) {
-                    row.attr('data-bind', 'css: { "' + (binding.selectedRowClass || 'selected') + '": $data = $parent.selectedRow() }');
-                }
 
                 ko.utils.arrayForEach(columns, function (column) {
                     row.append(column.render());

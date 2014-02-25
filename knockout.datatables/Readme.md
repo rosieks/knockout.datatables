@@ -8,5 +8,11 @@
 	* `ko.gridModel.odata` - grid model that use OData service to load server-side data,
 	* you can just use `ko.gridModel(requestCallback)` to create your own grid model.
 
+* `deferRender` - ???
+* `dom` - ???
+* `rowCallback` - ???
+* `rowTemplate` - ???
+* `selected` - ???
 * `scrollY` - enable scroll mode in grid
+* `tabIndex` - ???
 * `virtualScrolling` - enable virtual scroll mode
