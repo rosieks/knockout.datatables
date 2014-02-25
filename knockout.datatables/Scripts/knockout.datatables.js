@@ -121,8 +121,14 @@
         }
 
         function createTemplateFn(value, bindingField) {
-            return function () {
-                return value || '<td data-bind="text: ' + (bindingField || '$data') + '"></td>';
+            return function (source, type) {
+                if (type === 'display') {
+                    // HACK: To avoid unnecessary rendering in _fnCreateTr and increase performance don't return any result.
+                    return '';
+                }
+                else {
+                    return value || '<td data-bind="text: ' + (bindingField || '$data') + '"></td>';
+                }
             };
         }
     };
@@ -278,14 +284,18 @@
                             if (binding.selected() && binding.selected() === rowData(nodes[0])) {
                                 binding.selected(undefined);
                             }
-                            $(nodes[0]).removeAttr('tabindex').off('keydown', onRowKeyDown);
+                            if (binding.tabIndex) {
+                                $(nodes[0]).removeAttr('tabindex').off('keydown', onRowKeyDown);
+                            }
                         };
                         tableToolsSettings.fnRowSelected = function (nodes) {
                             var data = rowData(nodes[0]);
                             if (data !== binding.selected()) {
                                 binding.selected(data);
                             }
-                            $(nodes[0]).attr('tabindex', 0).focus().on('keydown', onRowKeyDown);
+                            if (binding.tabIndex) {
+                                $(nodes[0]).attr('tabindex', binding.tabIndex).focus().on('keydown', onRowKeyDown);
+                            }
                         };
                     }
                     binding.selected.subscribe(toggleRow('fnDeselect'), null, 'beforeChange');
