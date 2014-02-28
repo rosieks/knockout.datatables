@@ -33,7 +33,7 @@
     <script type="text/javascript">
         var data = [];
         for (var i = 0; i < 1000; i++) {
-            data.push({ Id: ko.observable(i), Name: 'Unibep ' + i, Code: parseInt(Math.random() * 100), IsSelected: ko.observable(false), Group: Math.ceil(i / 3) });
+            data.push({ Id: ko.observable(i), Name: 'Lorem ipsum ' + i, Code: parseInt(Math.random() * 100), IsSelected: ko.observable(false), Group: Math.ceil(i / 3) });
         }
         var items = ko.gridModel.inMemory(data);
         var vm = {
@@ -55,7 +55,7 @@
                 },
                 virtualScrolling: true,
                 allowColumnReorder: true,
-                tabIndex: 0,
+                tabIndex: 1,
                 //group: 'Group',
                 selected: ko.observable()
                 //selected: 'IsSelected'

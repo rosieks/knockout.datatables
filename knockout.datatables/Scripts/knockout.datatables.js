@@ -195,6 +195,7 @@
                     iTotalRecords: binding.datasource.totalRows(),
                     iTotalDisplayRecords: binding.datasource.totalRows()
                 });
+                $(element).trigger('reloaded');
             });
 
             function createRowTemplate(columns) {
@@ -301,6 +302,9 @@
                     }
                     binding.selected.subscribe(toggleRow('fnDeselect'), null, 'beforeChange');
                     binding.selected.subscribe(toggleRow('fnSelect'));
+                    $(element).on('reloaded', function () {
+                        binding.selected.valueHasMutated();
+                    });
                 }
                 else if (typeof binding.selected === 'string') {
                     toggle = function (value) {

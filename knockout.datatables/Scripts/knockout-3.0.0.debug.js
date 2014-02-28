@@ -1414,10 +1414,12 @@ ko.dependentObservable = function (evaluatorFunctionOrOptions, evaluatorFunction
     }
 
     function disposeAllSubscriptionsToDependencies() {
-        ko.utils.arrayForEach(_subscriptionsToDependencies, function (subscription) {
-            subscription.dispose();
-        });
-        _subscriptionsToDependencies = [];
+        if (_subscriptionsToDependencies.length > 0) {
+            ko.utils.arrayForEach(_subscriptionsToDependencies, function (subscription) {
+                subscription.dispose();
+            });
+            _subscriptionsToDependencies = [];
+        }
     }
 
     function evaluatePossiblyAsync() {
