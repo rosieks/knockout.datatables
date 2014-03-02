@@ -11,7 +11,8 @@
             sortField = ko.observable().extend({ throttle: 0 }),
             sortOrder = ko.observable('ASC').extend({ throttle: 0 }),
             totalRows = ko.observable(),
-            items = ko.observableArray();
+            items = ko.observableArray(),
+            timeoutHandle;
 
         var model = {
             page: page,
@@ -22,19 +23,23 @@
             items: items,
             load: load,
             store: store,
+            fetch: _requestData
         };
 
         _subscribe();
-        _requestData();
 
         return model;
 
         function _requestData(changedValue) {
-            console.log('Request ' + model.pageSize() + 'rows');
-            requestData(model, changedValue).done(function (items, totalRows) {
-                model.totalRows(totalRows);
-                model.items(items);
-            });
+            clearTimeout(timeoutHandle);
+            timeoutHandle = setTimeout(function () {
+                console.log('Request ' + model.pageSize() + 'rows');
+                console.trace();
+                requestData(model, changedValue).done(function (items, totalRows) {
+                    model.totalRows(totalRows);
+                    model.items(items);
+                });
+            }, 0);
         }
 
         function _subscribe() {
@@ -168,6 +173,7 @@
             options.rowCallback = function (row, srcData, displayIndex) {
                 var itemContext = bindingContext.createChildContext(ko.unwrap(srcData), options['as']);
                 itemContext['$index'] = ko.observable(displayIndex);
+                row.innerHTML = '';
                 ko.renderTemplate(binding.rowTemplate || element, itemContext, {}, row, 'replaceChildren');
                 if (binding.rowCallback) {
                     binding.rowCallback(row, srcData);
@@ -224,9 +230,11 @@
                 },
                 findRow = function (data) {
                     var index = binding.datasource.items.indexOf(data);
-                    var tt = $.fn.dataTable.TableTools.fnGetInstance(element);
-                    var row = element.rows[index + 1];
-                    return row;
+                    if (index !== -1) {
+                        var tt = $.fn.dataTable.TableTools.fnGetInstance(element);
+                        var row = element.rows[index + 1];
+                        return row;
+                    }
                 },
                 rowData = function (row) {
                     var td = row && row.cells[0];
@@ -260,8 +268,10 @@
                         var newIndex = index + (e.keyCode - 39);
                         if (newIndex >= 0 && newIndex <= rows.length) {
                             var row = rows.eq(newIndex)[0];
-                            var tt = $.fn.dataTable.TableTools.fnGetInstance(element);
-                            tt.fnSelect(row);
+                            if (row) {
+                                var tt = $.fn.dataTable.TableTools.fnGetInstance(element);
+                                tt.fnSelect(row);
+                            }
                             return false;
                         }
                     }
