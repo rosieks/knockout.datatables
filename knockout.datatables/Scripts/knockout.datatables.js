@@ -154,21 +154,24 @@
                 deferRender: binding.deferRender || binding.virtualScrolling,
                 scrollY: setupHeight(binding),
                 oTableTools: tableTools(binding)
-            };
+            },
+            scope = ko.utils.supressFeedbackScope();
 
             createRowTemplate(options.columnDefs);
 
             options.serverData = function (source, data) {
-                var start = data.start,
-                    pageSize = data.length,
-                    page = start / pageSize + 1,
-                    sortField = binding.columns[data.order[0].column].data(undefined, 'sort'),
-                    sortOrder = data.order[0].dir;
+                scope.supressFeedback(function () {
+                    var start = data.start,
+                        pageSize = data.length,
+                        page = start / pageSize + 1,
+                        sortField = binding.columns[data.order[0].column].data(undefined, 'sort'),
+                        sortOrder = data.order[0].dir;
 
-                binding.datasource.page(page);
-                binding.datasource.pageSize(pageSize);
-                binding.datasource.sortField(sortField);
-                binding.datasource.sortOrder(sortOrder);
+                    binding.datasource.page(page);
+                    binding.datasource.pageSize(pageSize);
+                    binding.datasource.sortField(sortField);
+                    binding.datasource.sortOrder(sortOrder);
+                });
             };
             options.rowCallback = function (row, srcData, displayIndex) {
                 var itemContext = bindingContext.createChildContext(ko.unwrap(srcData), options['as']);
@@ -202,6 +205,13 @@
                     iTotalDisplayRecords: binding.datasource.totalRows()
                 });
                 $(element).trigger('reloaded');
+            });
+
+            binding.datasource.page.subscribe(function (newValue) {
+                scope.supressFeedback(function () {
+                    var api = $(element).dataTable().api();
+                    api.page(newValue).draw(false);
+                });
             });
 
             function createRowTemplate(columns) {
@@ -371,4 +381,22 @@
             }
         }
     };
+
+    ko.utils.supressFeedbackScope = function () {
+        var supressFeedback = false;
+        return {
+            supressFeedback: function (callback) {
+                if (!supressFeedback) {
+                    supressFeedback = true;
+                    try {
+                        callback();
+                    }
+                    finally {
+                        supressFeedback = false;
+                    }
+                }
+            }
+        };
+    };
+
 })(window.$, window.ko);
