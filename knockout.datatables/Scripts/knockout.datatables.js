@@ -6,86 +6,79 @@
 
 (function ($, ko) {
     ko.gridModel = function (requestData) {
-        var page = ko.observable(1),
-            pageSize = ko.observable(20).extend({ throttle: 0 }),
-            sortField = ko.observable().extend({ throttle: 0 }),
-            sortOrder = ko.observable('ASC').extend({ throttle: 0 }),
-            totalRows = ko.observable(),
-            items = ko.observableArray(),
-            timeoutHandle;
+        var key = '__ko_gridModel_';
+        var parameters = {
+            page: ko.observable(1),
+            pageSize: ko.observable(20),
+            sortField: ko.observable(),
+            sortOrder: ko.observable('ASC')
+        },
+        result = { items: ko.observableArray(), totalRows: ko.observable() };
+        ko.computed(_requestData, parameters).extend({ rateLimit: 0 });
 
         var model = {
-            page: page,
-            pageSize: pageSize,
-            sortField: sortField,
-            sortOrder: sortOrder,
-            totalRows: totalRows,
-            items: items,
+            parameters: parameters,
+            result: result,
             load: load,
             store: store,
             fetch: _requestData
         };
 
-        _subscribe();
-
         return model;
 
-        function _requestData(changedValue) {
-            clearTimeout(timeoutHandle);
-            timeoutHandle = setTimeout(function () {
-                requestData(model, changedValue).done(function (items, totalRows) {
-                    model.totalRows(totalRows);
-                    model.items(items);
-                });
-            }, 0);
-        }
-
-        function _subscribe() {
-            var fields = ['page', 'pageSize', 'sortField', 'sortOrder'];
-            var requestData = function (field) {
-                return function (newValue) {
-                    _requestData({ field: field, newValue: newValue });
-                };
-            };
-            for (var i = 0, j = fields.length; i < j; i++) {
-                var field = fields[i];
-                model[field].subscribe(requestData(field));
-            }
+        function _requestData() {
+            console.log('request data');
+            console.trace();
+            $.proxy(requestData, parameters)().done(function (items, totalRows) {
+                result.totalRows(totalRows);
+                result.items(items);
+            });
         }
 
         function load(name) {
+            var obj = JSON.parse(sessionStorage.getItem(key + name));
+            for (var field in obj) {
+                var value = parameters[field];
+                if (ko.isWriteableObservable(value) && !ko.isComputed(value)) {
+                    value(obj[field]);
+                }
+            }
 
+            return parameters;
         }
 
         function store(name) {
-
+            var obj = {};
+            for (var field in parameters) {
+                var value = parameters[field];
+                if (ko.isObservable(value) && !ko.isComputed(value)) {
+                    obj[field] = ko.unwrap(value);
+                };
+            }
+            sessionStorage.setItem(key + name, JSON.stringify(obj));
         }
     };
     ko.gridModel.inMemory = function (items) {
-        return ko.gridModel(function (model, changedValue) {
+        return ko.gridModel(function () {
             var dfd = $.Deferred();
+            var start = parseInt(this.pageSize() * (this.page() - 1)),
+                end = parseInt(this.pageSize() * this.page()),
+                sortField = this.sortField(),
+                sortMultiplier = this.sortOrder() === 'asc' ? -1 : 1;
 
             setTimeout(function () {
-                var start = parseInt(model.pageSize() * (model.page() - 1)),
-                    end = parseInt(model.pageSize() * model.page()),
-                    result = [];
-
-                if (!changedValue || (changedValue.field === 'sortField' || changedValue.field === 'sortOrder')) {
-                    var sortField = model.sortField();
-                    var sortMultiplier = model.sortOrder() === 'asc' ? -1 : 1;
-                    items.sort(function (i, j) {
-
-                        if (ko.unwrap(i[sortField]) < ko.unwrap(j[sortField])) {
-                            return sortMultiplier;
-                        }
-                        else if (ko.unwrap(i[sortField]) > ko.unwrap(j[sortField])) {
-                            return -sortMultiplier;
-                        }
-                        else {
-                            return 0;
-                        }
-                    });
-                }
+                var result = [];
+                items.sort(function (i, j) {
+                    if (ko.unwrap(i[sortField]) < ko.unwrap(j[sortField])) {
+                        return sortMultiplier;
+                    }
+                    else if (ko.unwrap(i[sortField]) > ko.unwrap(j[sortField])) {
+                        return -sortMultiplier;
+                    }
+                    else {
+                        return 0;
+                    }
+                });
 
                 for (var i = start; i < end && i < items.length; i++) {
                     result.push(items[i]);
@@ -145,8 +138,8 @@
             var binding = valueAccessor();
             var options = {
                 columnDefs: $.each(binding.columns, function (i, val) { val.targets = [i]; }),
-                displayLength: binding.datasource.pageSize(),
-                displayStart: binding.datasource.pageSize() * (binding.datasource.page() - 1),
+                displayLength: binding.datasource.parameters.pageSize(),
+                displayStart: binding.datasource.parameters.pageSize() * (binding.datasource.parameters.page() - 1),
                 serverSide: true,
                 dom: buildDom(binding),
                 deferRender: binding.deferRender || binding.virtualScrolling,
@@ -165,10 +158,10 @@
                         sortField = binding.columns[data.order[0].column].data(undefined, 'sort'),
                         sortOrder = data.order[0].dir;
 
-                    binding.datasource.page(page);
-                    binding.datasource.pageSize(pageSize);
-                    binding.datasource.sortField(sortField);
-                    binding.datasource.sortOrder(sortOrder);
+                    binding.datasource.parameters.page(page);
+                    binding.datasource.parameters.pageSize(pageSize);
+                    binding.datasource.parameters.sortField(sortField);
+                    binding.datasource.parameters.sortOrder(sortOrder);
                 });
             };
             options.rowCallback = function (row, srcData, displayIndex) {
@@ -185,7 +178,7 @@
 
             $(element).dataTable(options).on('column-reorder', onColumnReorder);
 
-            binding.datasource.items.subscribe(function (newItems) {
+            binding.datasource.result.items.subscribe(function (newItems) {
                 var dataTable = $(element).dataTable();
                 var api = dataTable.api();
 
@@ -199,13 +192,13 @@
 
                 dataTable._fnAjaxUpdateDraw({
                     aaData: newItems,
-                    iTotalRecords: binding.datasource.totalRows(),
-                    iTotalDisplayRecords: binding.datasource.totalRows()
+                    iTotalRecords: binding.datasource.result.totalRows(),
+                    iTotalDisplayRecords: binding.datasource.result.totalRows()
                 });
                 $(element).trigger('reloaded');
             });
 
-            binding.datasource.page.subscribe(function (newPage) {
+            binding.datasource.parameters.page.subscribe(function (newPage) {
                 scope.supressFeedback(function () {
                     var api = $(element).dataTable().api();
                     api.page(newPage - 1).draw(false);
@@ -237,7 +230,7 @@
                     aButtons: []
                 },
                 findRow = function (data) {
-                    var index = binding.datasource.items.indexOf(data);
+                    var index = binding.datasource.result.items.indexOf(data);
                     if (index !== -1) {
                         var tt = $.fn.dataTable.TableTools.fnGetInstance(element);
                         var row = element.rows[index + 1];
@@ -340,8 +333,8 @@
                     tableToolsSettings.sRowSelect = 'multi';
                     tableToolsSettings.fnRowSelected = toggle(true);
                     tableToolsSettings.fnRowDeselected = toggle(false);
-                    binding.datasource.items.filter(function (item) { return item[binding.selected]() === true; }).subscribe(toggleRow('fnSelect'));
-                    binding.datasource.items.filter(function (item) { return item[binding.selected]() === false; }).subscribe(toggleRow('fnDeselect'));
+                    binding.datasource.result.items.filter(function (item) { return item[binding.selected]() === true; }).subscribe(toggleRow('fnSelect'));
+                    binding.datasource.result.items.filter(function (item) { return item[binding.selected]() === false; }).subscribe(toggleRow('fnDeselect'));
                 }
 
                 return tableToolsSettings;
