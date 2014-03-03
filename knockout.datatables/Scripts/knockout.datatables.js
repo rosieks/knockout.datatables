@@ -207,10 +207,10 @@
                 $(element).trigger('reloaded');
             });
 
-            binding.datasource.page.subscribe(function (newValue) {
+            binding.datasource.page.subscribe(function (newPage) {
                 scope.supressFeedback(function () {
                     var api = $(element).dataTable().api();
-                    api.page(newValue).draw(false);
+                    api.page(newPage).draw(false);
                 });
             });
 
