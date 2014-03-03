@@ -33,8 +33,6 @@
         function _requestData(changedValue) {
             clearTimeout(timeoutHandle);
             timeoutHandle = setTimeout(function () {
-                console.log('Request ' + model.pageSize() + 'rows');
-                console.trace();
                 requestData(model, changedValue).done(function (items, totalRows) {
                     model.totalRows(totalRows);
                     model.items(items);
@@ -210,7 +208,7 @@
             binding.datasource.page.subscribe(function (newPage) {
                 scope.supressFeedback(function () {
                     var api = $(element).dataTable().api();
-                    api.page(newPage).draw(false);
+                    api.page(newPage - 1).draw(false);
                 });
             });
 
