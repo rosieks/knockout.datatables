@@ -141,18 +141,11 @@
     };
 
     ko.bindingHandlers.datatables = {
+        defaults: {
+        },
         init: function (element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
             var binding = valueAccessor();
-            var options = {
-                columnDefs: $.each(binding.columns, function (i, val) { val.targets = [i]; }),
-                displayLength: binding.datasource.pageSize(),
-                displayStart: binding.datasource.pageSize() * (binding.datasource.page() - 1),
-                serverSide: true,
-                dom: buildDom(binding),
-                deferRender: binding.deferRender || binding.virtualScrolling,
-                scrollY: setupHeight(binding),
-                oTableTools: tableTools(binding)
-            },
+            var options = mergeOptions(binding);
             scope = ko.utils.supressFeedbackScope();
 
             createRowTemplate(options.columnDefs);
@@ -376,6 +369,29 @@
 
             function onColumnReorder(a, b, c) {
                 //createRowTemplate()
+            }
+
+            function mergeOptions(binding) {
+                var options = $.extend(
+                    {},
+                    ko.bindingHandlers.datatables.defaults,
+                    binding,
+                    {
+                        columnDefs: $.each(binding.columns, function (i, val) { val.targets = [i]; }),
+                        displayLength: binding.datasource.pageSize(),
+                        displayStart: binding.datasource.pageSize() * (binding.datasource.page() - 1),
+                        serverSide: true,
+                        dom: buildDom(binding),
+                        deferRender: binding.deferRender || binding.virtualScrolling,
+                        scrollY: setupHeight(binding),
+                        oTableTools: tableTools(binding)
+                    });
+
+                delete options.datasource;
+                delete options.columns;
+                delete options.virtualScrolling;
+                delete options.selected;
+                return options;
             }
         }
     };
