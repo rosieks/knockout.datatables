@@ -41,7 +41,7 @@
                     result.totalRows(totalRows);
                     result.items(items);
                 });
-            }
+        }
         }
 
         function load(name) {
@@ -50,8 +50,8 @@
                 var value = parameters[field];
                 if (ko.isWriteableObservable(value) && !ko.isComputed(value)) {
                     value(obj[field]);
-                }
             }
+        }
 
             return model;
         }
@@ -63,7 +63,7 @@
                 if (ko.isObservable(value) && !ko.isComputed(value)) {
                     obj[field] = ko.unwrap(value);
                 };
-            }
+        }
             sessionStorage.setItem(key + name, JSON.stringify(obj));
         }
 
@@ -94,17 +94,17 @@
 
             setTimeout(function () {
                 var result = [];
-                items.sort(function (i, j) {
-                    if (ko.unwrap(i[sortField]) < ko.unwrap(j[sortField])) {
-                        return sortMultiplier;
-                    }
-                    else if (ko.unwrap(i[sortField]) > ko.unwrap(j[sortField])) {
-                        return -sortMultiplier;
-                    }
-                    else {
-                        return 0;
-                    }
-                });
+                    items.sort(function (i, j) {
+                        if (ko.unwrap(i[sortField]) < ko.unwrap(j[sortField])) {
+                            return sortMultiplier;
+                        }
+                        else if (ko.unwrap(i[sortField]) > ko.unwrap(j[sortField])) {
+                            return -sortMultiplier;
+                        }
+                        else {
+                            return 0;
+                        }
+                    });
 
                 for (var i = start; i < end && i < items.length; i++) {
                     result.push(items[i]);
@@ -160,24 +160,11 @@
     };
 
     ko.bindingHandlers.datatables = {
+        defaults: {
+        },
         init: function (element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
             var binding = valueAccessor();
-            var options = {
-                columnDefs: $.each(binding.columns, function (i, val) { val.targets = [i]; }),
-                displayLength: binding.datasource.parameters.pageSize(),
-                displayStart: binding.datasource.parameters.pageSize() * (binding.datasource.parameters.page() - 1),
-                serverSide: true,
-                dom: buildDom(binding),
-                deferRender: binding.deferRender || binding.virtualScrolling,
-                scrollY: setupHeight(binding),
-                order: getOrder(binding),
-                oTableTools: tableTools(binding),
-                initComplete: function (o) {
-                    if (binding.virtualScrolling) {
-                        o.oScroller.fnScrollToRow(binding.datasource.parameters.pageSize() * (binding.datasource.parameters.page() - 1));
-                    }
-                }
-            },
+            var options = mergeOptions(binding);
             scope = ko.utils.supressFeedbackScope();
 
             createRowTemplate(options.columnDefs);
@@ -237,7 +224,7 @@
                     api.page(newPage - 1).draw(false);
                 });
             });
-            
+
             function getOrder(binding) {
                 var field = binding.datasource.parameters.sortField();
                 var order = binding.datasource.parameters.sortOrder();
@@ -415,6 +402,35 @@
 
             function onColumnReorder(a, b, c) {
                 //createRowTemplate()
+            }
+
+            function mergeOptions(binding) {
+                var options = $.extend(
+                    {},
+                    ko.bindingHandlers.datatables.defaults,
+                    binding,
+                    {
+                        columnDefs: $.each(binding.columns, function (i, val) { val.targets = [i]; }),
+                        displayLength: binding.datasource.parameters.pageSize(),
+                        displayStart: binding.datasource.parameters.pageSize() * (binding.datasource.parameters.page() - 1),
+                        serverSide: true,
+                        dom: buildDom(binding),
+                        deferRender: binding.deferRender || binding.virtualScrolling,
+                        order: getOrder(binding),
+                        scrollY: setupHeight(binding),
+                        oTableTools: tableTools(binding),
+                        initComplete: function (o) {
+                            if (binding.virtualScrolling) {
+                                o.oScroller.fnScrollToRow(binding.datasource.parameters.pageSize() * (binding.datasource.parameters.page() - 1));
+                            }
+                        }
+                    });
+
+                delete options.datasource;
+                delete options.columns;
+                delete options.virtualScrolling;
+                delete options.selected;
+                return options;
             }
         }
     };
