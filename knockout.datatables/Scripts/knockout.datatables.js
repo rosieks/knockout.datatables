@@ -112,9 +112,34 @@
 
                 dfd.resolve(result, items.length);
             }, 0);
-            return dfd;
+            return dfd.promise();
         });
     };
+    ko.gridModel.odata = function (url) {
+        return ko.gridModel(function () {
+            var dfd = $.Deferred();
+            $.get(url, {
+                '$skip': this.skip(),
+                '$top': this.top(),
+                '$orderby': this.sortField() + ' ' + this.sortOrder().toLowerCase()
+            }).done(function (result) {
+                dfd.resolve(result.Items, result.Count);
+            }).fail(dfd.reject);
+            return dfd.promise();
+        });
+    };
+    ko.gridModel.odata.op = {
+        Equal: 'eq',
+        NotEqual: 'ne',
+        GreaterThan: 'gt',
+        GreaterThanOrEqual: 'ge',
+        LessThan: 'lt',
+        LessThanOrEqual: 'le',
+        And: 'and',
+        Or: 'or',
+        Not: 'not'
+    };
+
     ko.dtColumn = function (name, displayName) {
         var args;
         if (arguments.length === 2 || arguments.length === 1 && typeof (name) === 'string') {
