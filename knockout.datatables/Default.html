@@ -11,31 +11,37 @@
     <script src="Scripts/dataTables.scroller.js"></script>
     <script src="Scripts/dataTables.colReorder.js"></script>
     <script src="Scripts/dataTables.tableTools.js"></script>
-    <script src="Scripts/knockout-3.0.0.debug.js"></script>
+    <script src="Scripts/knockout-3.1.0.debug.js"></script>
     <script src="Scripts/knockout-projections.js"></script>
     <script src="Scripts/knockout.datatables.js"></script>
     <style>
         div.DTS tbody tr.selected {
             background-color: red;
         }
+
+        .sorting_asc, .sorting_desc {
+            background: #00ff90;
+        }
     </style>
 </head>
 <body>
+    <!-- ko-vs-editor viewModel: vm -->
     <div>test</div>
     <div class="container">
-        <table class="table" data-bind="datatables: grid" width="100%"></table>
+        <table id="test" class="table" data-bind="datatables: grid" width="100%"></table>
         <!--<ul data-bind="foreach: grid.datasource.items">
             <li data-bind="text: Id" />
         </ul>-->
         <div>Zaznaczony element ma ID: <!-- ko text: grid.selected() && grid.selected().Id --><!-- /ko --></div>
         <button data-bind="click: select">Test</button>
+        <button data-bind="click: move">Move</button>
     </div>
     <script type="text/javascript">
         var data = [];
         for (var i = 0; i < 1000; i++) {
             data.push({ Id: ko.observable(i), Name: 'Lorem ipsum ' + i, Code: parseInt(Math.random() * 100), IsSelected: ko.observable(false), Group: Math.ceil(i / 3) });
         }
-        var items = ko.gridModel.inMemory(data);
+        var items = ko.gridModel.inMemory(data).load('test2');
         var vm = {
             grid: {
                 datasource: items,
@@ -51,7 +57,7 @@
                     })
                 ],
                 scrollY: function () {
-                    return $(this).offset() && window.innerHeight - 50 - $(this).offset().top;
+                    return $(this).offset() && window.innerHeight - 100 - $(this).offset().top;
                 },
                 virtualScrolling: true,
                 allowColumnReorder: true,
@@ -63,10 +69,16 @@
             select: function () {
                 items.items()[0].IsSelected(!items.items()[0].IsSelected());
                 //vm.grid.selected(vm.grid.selected() ? undefined : vm.grid.datasource.items()[0]);
+            },
+            move: function () {
+                //var api = $('#test').dataTable().api();
+                //api.page(2).draw(false);
+                this.grid.datasource.page(1);
             }
         };
 
         ko.applyBindings(vm);
     </script>
+    <!-- /ko-vs-editor -->
 </body>
 </html>

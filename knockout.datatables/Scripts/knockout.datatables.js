@@ -13,6 +13,8 @@
             sortField: ko.observable(),
             sortOrder: ko.observable('ASC')
         },
+        lastParameters = clone(parameters);
+        canFetch = ko.observable(false),
         result = { items: ko.observableArray(), totalRows: ko.observable() };
         ko.computed(_requestData, parameters).extend({ rateLimit: 0 });
 
@@ -21,18 +23,25 @@
             result: result,
             load: load,
             store: store,
-            fetch: _requestData
+            fetch: function () {
+                canFetch(true);
+                canFetch.notifySubscribers(true);
+                return model;
+            }
         };
 
         return model;
 
         function _requestData() {
-            console.log('request data');
-            console.trace();
-            $.proxy(requestData, parameters)().done(function (items, totalRows) {
-                result.totalRows(totalRows);
-                result.items(items);
-            });
+            if (canFetch() && isDifferent(lastParameters, parameters)) {
+                lastParameters = clone(parameters);
+                console.log('request data');
+                console.trace();
+                $.proxy(requestData, parameters)().done(function (items, totalRows) {
+                    result.totalRows(totalRows);
+                    result.items(items);
+                });
+            }
         }
 
         function load(name) {
@@ -44,7 +53,7 @@
                 }
             }
 
-            return parameters;
+            return model;
         }
 
         function store(name) {
@@ -56,6 +65,23 @@
                 };
             }
             sessionStorage.setItem(key + name, JSON.stringify(obj));
+        }
+
+        function isDifferent(previous, pending) {
+            for (var p in pending) {
+                if (ko.unwrap(previous[p]) !== ko.unwrap(pending[p])) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function clone(value) {
+            var v = {};
+            for (var p in value) {
+                v[p] = ko.unwrap(value[p]);
+            }
+            return v;
         }
     };
     ko.gridModel.inMemory = function (items) {
@@ -144,7 +170,13 @@
                 dom: buildDom(binding),
                 deferRender: binding.deferRender || binding.virtualScrolling,
                 scrollY: setupHeight(binding),
-                oTableTools: tableTools(binding)
+                order: getOrder(binding),
+                oTableTools: tableTools(binding),
+                initComplete: function (o) {
+                    if (binding.virtualScrolling) {
+                        o.oScroller.fnScrollToRow(binding.datasource.parameters.pageSize() * (binding.datasource.parameters.page() - 1));
+                    }
+                }
             },
             scope = ko.utils.supressFeedbackScope();
 
@@ -162,6 +194,7 @@
                     binding.datasource.parameters.pageSize(pageSize);
                     binding.datasource.parameters.sortField(sortField);
                     binding.datasource.parameters.sortOrder(sortOrder);
+                    binding.datasource.fetch();
                 });
             };
             options.rowCallback = function (row, srcData, displayIndex) {
@@ -204,6 +237,19 @@
                     api.page(newPage - 1).draw(false);
                 });
             });
+            
+            function getOrder(binding) {
+                var field = binding.datasource.parameters.sortField();
+                var order = binding.datasource.parameters.sortOrder();
+                var fieldIndex = 0;
+                for (var i = 0, j = binding.columns.length; i < j; i++) {
+                    if (binding.columns[i].data(undefined, 'sort') === field) {
+                        fieldIndex = i;
+                        break;
+                    }
+                }
+                return [fieldIndex, order];
+            }
 
             function createRowTemplate(columns) {
                 var row = $('<tr>');
