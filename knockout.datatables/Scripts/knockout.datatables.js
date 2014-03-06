@@ -1,4 +1,4 @@
-﻿// Knockout DataTables 0.1.0
+﻿// Knockout DataTables 0.2.0
 // (c) Sławomir Rosiek - https://github.com/rosieks/knockout.datatables
 // License: MIT (http://www.opensource.org/licenses/mit-license.php)
 
@@ -8,8 +8,8 @@
     ko.gridModel = function (requestData) {
         var key = '__ko_gridModel_';
         var parameters = {
-            page: ko.observable(1),
-            pageSize: ko.observable(20),
+            skip: ko.observable(0),
+            top: ko.observable(20),
             sortField: ko.observable(),
             sortOrder: ko.observable('ASC')
         },
@@ -87,8 +87,8 @@
     ko.gridModel.inMemory = function (items) {
         return ko.gridModel(function () {
             var dfd = $.Deferred();
-            var start = parseInt(this.pageSize() * (this.page() - 1)),
-                end = parseInt(this.pageSize() * this.page()),
+            var start = this.skip(),
+                end = this.skip() + this.top(),
                 sortField = this.sortField(),
                 sortMultiplier = this.sortOrder() === 'asc' ? -1 : 1;
 
@@ -171,14 +171,11 @@
 
             options.serverData = function (source, data) {
                 scope.supressFeedback(function () {
-                    var start = data.start,
-                        pageSize = data.length,
-                        page = start / pageSize + 1,
-                        sortField = binding.columns[data.order[0].column].data(undefined, 'sort'),
+                    var sortField = binding.columns[data.order[0].column].data(undefined, 'sort'),
                         sortOrder = data.order[0].dir;
 
-                    binding.datasource.parameters.page(page);
-                    binding.datasource.parameters.pageSize(pageSize);
+                    binding.datasource.parameters.skip(data.start);
+                    binding.datasource.parameters.top(data.length);
                     binding.datasource.parameters.sortField(sortField);
                     binding.datasource.parameters.sortOrder(sortOrder);
                     binding.datasource.fetch();
@@ -218,10 +215,11 @@
                 $(element).trigger('reloaded');
             });
 
-            binding.datasource.parameters.page.subscribe(function (newPage) {
+            binding.datasource.parameters.skip.subscribe(function (newSkip) {
                 scope.supressFeedback(function () {
+                    var parameters = binding.datasource.parameters;
                     var api = $(element).dataTable().api();
-                    api.page(newPage - 1).draw(false);
+                    api.page(newSkip / parameters.top()).draw(false);
                 });
             });
 
@@ -411,8 +409,8 @@
                     binding,
                     {
                         columnDefs: $.each(binding.columns, function (i, val) { val.targets = [i]; }),
-                        displayLength: binding.datasource.parameters.pageSize(),
-                        displayStart: binding.datasource.parameters.pageSize() * (binding.datasource.parameters.page() - 1),
+                        displayLength: binding.datasource.parameters.top(),
+                        displayStart: binding.datasource.parameters.skip(),
                         serverSide: true,
                         dom: buildDom(binding),
                         deferRender: binding.deferRender || binding.virtualScrolling,
@@ -421,7 +419,7 @@
                         oTableTools: tableTools(binding),
                         initComplete: function (o) {
                             if (binding.virtualScrolling) {
-                                o.oScroller.fnScrollToRow(binding.datasource.parameters.pageSize() * (binding.datasource.parameters.page() - 1));
+                                o.oScroller.fnScrollToRow(binding.datasource.parameters.skip());
                             }
                         }
                     });
