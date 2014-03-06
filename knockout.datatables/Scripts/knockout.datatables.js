@@ -416,7 +416,7 @@
                         serverSide: true,
                         dom: buildDom(binding),
                         deferRender: binding.deferRender || binding.virtualScrolling,
-                        order: getOrder(binding),
+                        order: binding.order || getOrder(binding),
                         scrollY: setupHeight(binding),
                         oTableTools: tableTools(binding),
                         initComplete: function (o) {
