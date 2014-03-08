@@ -15,6 +15,7 @@
         },
         lastParameters = clone(parameters);
         canFetch = ko.observable(false),
+        forceFetch = false,
         result = { items: ko.observableArray(), totalRows: ko.observable() };
         ko.computed(_requestData, parameters).extend({ rateLimit: 0 });
 
@@ -23,20 +24,15 @@
             result: result,
             load: load,
             store: store,
-            fetch: function () {
-                canFetch(true);
-                canFetch.notifySubscribers(true);
-                return model;
-            }
+            fetch: fetch
         };
 
         return model;
 
         function _requestData() {
-            if (canFetch() && isDifferent(lastParameters, parameters)) {
+            if (canFetch() && (isDifferent(lastParameters, parameters) || forceFetch)) {
                 lastParameters = clone(parameters);
-                console.log('request data');
-                console.trace();
+                forceFetch = false;
                 $.proxy(requestData, parameters)().done(function (items, totalRows) {
                     result.totalRows(totalRows);
                     result.items(items);
@@ -67,6 +63,14 @@
             sessionStorage.setItem(key + name, JSON.stringify(obj));
         }
 
+        function fetch(options) {
+            options = $.extend({}, { force: false }, options);
+            forceFetch = options.force;
+            canFetch(true);
+            canFetch.notifySubscribers(true);
+            return model;
+        }
+        
         function isDifferent(previous, pending) {
             for (var p in pending) {
                 if (ko.unwrap(previous[p]) !== ko.unwrap(pending[p])) {
