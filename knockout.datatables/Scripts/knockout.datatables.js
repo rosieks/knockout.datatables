@@ -13,7 +13,8 @@
             sortField: ko.observable(),
             sortOrder: ko.observable('ASC')
         },
-        lastParameters = clone(parameters);
+        inProgress = ko.observable(false),
+        lastParameters = clone(parameters),
         canFetch = ko.observable(false),
         forceFetch = false,
         result = { items: ko.observableArray(), totalRows: ko.observable() };
@@ -24,7 +25,8 @@
             result: result,
             load: load,
             store: store,
-            fetch: fetch
+            fetch: fetch,
+            fetchInProgress: inProgress
         };
 
         return model;
@@ -33,9 +35,12 @@
             if (canFetch() && (isDifferent(lastParameters, parameters) || forceFetch)) {
                 lastParameters = clone(parameters);
                 forceFetch = false;
+                inProgress(true)
                 $.proxy(requestData, parameters)().done(function (items, totalRows) {
                     result.totalRows(totalRows);
                     result.items(items);
+                }).always(function () {
+                    inProgress(false);
                 });
         }
         }
@@ -167,9 +172,10 @@
         defaults: {
         },
         init: function (element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
-            var binding = valueAccessor();
-            var options = mergeOptions(binding);
-            scope = ko.utils.supressFeedbackScope();
+            var $element = $(element),
+                binding = valueAccessor(),
+                options = mergeOptions(binding),
+                scope = ko.utils.supressFeedbackScope();
 
             createRowTemplate(options.columnDefs);
 
@@ -197,10 +203,10 @@
                 return row;
             };
 
-            $(element).dataTable(options).on('column-reorder', onColumnReorder);
+            $element.dataTable(options).on('column-reorder', onColumnReorder);
 
             binding.datasource.result.items.subscribe(function (newItems) {
-                var dataTable = $(element).dataTable();
+                var dataTable = $element.dataTable();
                 var api = dataTable.api();
 
                 var tableNodes = api.rows().nodes();
@@ -216,15 +222,21 @@
                     iTotalRecords: binding.datasource.result.totalRows(),
                     iTotalDisplayRecords: binding.datasource.result.totalRows()
                 });
-                $(element).trigger('reloaded');
+                $element.trigger('reloaded');
             });
-
             binding.datasource.parameters.skip.subscribe(function (newSkip) {
                 scope.supressFeedback(function () {
                     var parameters = binding.datasource.parameters;
-                    var api = $(element).dataTable().api();
+                    var api = $element.dataTable().api();
                     api.page(newSkip / parameters.top()).draw(false);
                 });
+            });
+            if (binding.loadingTemplate) {
+                binding.datasource.fetchInProgress.subscribe(toggleLoading);
+            }
+
+            ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
+                $element.dataTable().api().destroy();
             });
 
             function getOrder(binding) {
@@ -241,13 +253,13 @@
             }
 
             function createRowTemplate(columns) {
-                var row = $('<tr>');
+                var $row = $('<tr>');
 
                 ko.utils.arrayForEach(columns, function (column) {
-                    row.append(column.render());
+                    $row.append(column.render());
                 });
 
-                var templateNodes = row[0].childNodes,
+                var templateNodes = $row[0].childNodes,
                     container = ko.utils.moveCleanedNodesToContainerElement(templateNodes);
                 new ko.templateSources.anonymousTemplate(element).nodes(container);
             }
@@ -299,11 +311,11 @@
                 },
                 onRowKeyDown = function (e) {
                     if (e.keyCode === 40 || e.keyCode === 38) {
-                        var rows = $(element).find('tbody tr');
-                        var index = rows.index(e.target);
+                        var $rows = $element.find('tbody tr');
+                        var index = $rows.index(e.target);
                         var newIndex = index + (e.keyCode - 39);
-                        if (newIndex >= 0 && newIndex <= rows.length) {
-                            var row = rows.eq(newIndex)[0];
+                        if (newIndex >= 0 && newIndex <= $rows.length) {
+                            var row = $rows.eq(newIndex)[0];
                             if (row) {
                                 var tt = $.fn.dataTable.TableTools.fnGetInstance(element);
                                 tt.fnSelect(row);
@@ -348,7 +360,7 @@
                     }
                     binding.selected.subscribe(toggleRow('fnDeselect'), null, 'beforeChange');
                     binding.selected.subscribe(toggleRow('fnSelect'));
-                    $(element).on('reloaded', function () {
+                    $element.on('reloaded', function () {
                         binding.selected.valueHasMutated();
                     });
                 }
@@ -379,14 +391,14 @@
                 if (binding.scrollY) {
                     if (typeof binding.scrollY === 'function') {
                         var setScrollY = function () {
-                            var body = $(element).parent();
-                            if (body.length > 0) {
-                                body.height($.proxy(binding.scrollY, body)());
+                            var $body = $element.parent();
+                            if ($body.length > 0) {
+                                $body.height($.proxy(binding.scrollY, $body)());
                             }
                         };
                         $(window).resize(setScrollY);
                         setTimeout(function () {
-                            $(element).dataTable()._fnAdjustColumnSizing(true);
+                            $element.dataTable()._fnAdjustColumnSizing(true);
                             setScrollY();
                         }, 100);
                         try {
@@ -433,6 +445,25 @@
                 delete options.virtualScrolling;
                 delete options.selected;
                 return options;
+            }
+
+            function toggleLoading(toggle) {
+                var $loader = $('#table-loader');
+                if (toggle) {
+                    var $parent = $element.parent();
+                    if (!$loader.length) {
+                        var tmpl = document.getElementById(binding.loadingTemplate);
+                        $loader = $(tmpl.innerHTML).attr({ id: 'table-loader'}).css({position: 'absolute', 'z-index': 1, left: 0, right: 0 });
+                        $parent.append($loader);
+                    }
+
+                    var scrollTop = $parent.scrollTop();
+                    var height = $parent.height();
+                    $loader.css({ top: scrollTop, height: height }).show();
+                }
+                else {
+                    $loader.hide();
+                }
             }
         }
     };

@@ -1,6 +1,7 @@
 ﻿<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
+    <meta http-equiv="cache-control" content="no-cache" />
     <title></title>
     <link href="Content/bootstrap/bootstrap.css" rel="stylesheet" />
     <link href="Content/bootstrap/bootstrap-theme.css" rel="stylesheet" />
@@ -36,6 +37,9 @@
         <button data-bind="click: select">Test</button>
         <button data-bind="click: move">Move</button>
     </div>
+    <script type="text/html" id="loader">
+        <div style="background: white;"><div style="top: 50%; position: absolute; width: 100%; text-align: center;">Ładowanie</div></div>
+    </script>
     <script type="text/javascript">
         var data = [];
         for (var i = 0; i < 1000; i++) {
@@ -63,7 +67,8 @@
                 allowColumnReorder: true,
                 tabIndex: 1,
                 //group: 'Group',
-                selected: ko.observable()
+                loadingTemplate: 'loader',
+                selected: ko.observable(),
                 //selected: 'IsSelected'
             },
             select: function () {
