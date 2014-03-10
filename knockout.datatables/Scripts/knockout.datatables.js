@@ -173,7 +173,7 @@
         },
         init: function (element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
             var $element = $(element),
-                binding = valueAccessor(),
+                binding = $.extend({}, ko.bindingHandlers.datatables.defaults, valueAccessor()),
                 options = mergeOptions(binding),
                 scope = ko.utils.supressFeedbackScope();
 
@@ -421,7 +421,6 @@
             function mergeOptions(binding) {
                 var options = $.extend(
                     {},
-                    ko.bindingHandlers.datatables.defaults,
                     binding,
                     {
                         columnDefs: $.each(binding.columns, function (i, val) { val.targets = [i]; }),
@@ -444,6 +443,7 @@
                 delete options.columns;
                 delete options.virtualScrolling;
                 delete options.selected;
+                delete options.loadingTemplate;
                 return options;
             }
 
