@@ -260,7 +260,7 @@
                 });
 
                 var templateNodes = $row[0].childNodes,
-                    container = ko.utils.moveCleanedNodesToContainerElement(templateNodes);
+                    container = moveCleanedNodesToContainerElement(templateNodes);
                 new ko.templateSources.anonymousTemplate(element).nodes(container);
             }
 
@@ -464,6 +464,26 @@
                 else {
                     $loader.hide();
                 }
+            }
+
+            function moveCleanedNodesToContainerElement(nodes) {
+                // Ensure it's a real array, as we're about to reparent the nodes and
+                // we don't want the underlying collection to change while we're doing that.
+                var nodesArray = makeArray(nodes);
+
+                var container = document.createElement('div');
+                for (var i = 0, j = nodesArray.length; i < j; i++) {
+                    container.appendChild(ko.cleanNode(nodesArray[i]));
+                }
+                return container;
+            }
+
+            function makeArray(arrayLikeObject) {
+                var result = [];
+                for (var i = 0, j = arrayLikeObject.length; i < j; i++) {
+                    result.push(arrayLikeObject[i]);
+                };
+                return result;
             }
         }
     };
