@@ -452,12 +452,13 @@
             }
 
             function toggleLoading(toggle) {
-                var $loader = $('#table-loader');
+                var id = $element.parents('.dataTables_wrapper')[0].id.replace('wrapper', 'loader');
+                var $loader = $(document.getElementById(id));
                 if (toggle) {
                     var $parent = $element.parent();
                     if (!$loader.length) {
                         var tmpl = document.getElementById(binding.loadingTemplate);
-                        $loader = $(tmpl.innerHTML).attr({ id: 'table-loader'}).css({position: 'absolute', 'z-index': 1, left: 0, right: 0 });
+                        $loader = $(tmpl.innerHTML).attr({ id: id }).css({position: 'absolute', 'z-index': 1, left: 0, right: 0 });
                         $parent.append($loader);
                     }
 
