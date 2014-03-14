@@ -35,7 +35,7 @@
             if (canFetch() && (isDifferent(lastParameters, parameters) || forceFetch)) {
                 lastParameters = clone(parameters);
                 forceFetch = false;
-                inProgress(true)
+                inProgress(true);
                 $.proxy(requestData, parameters)().done(function (items, totalRows) {
                     result.totalRows(totalRows);
                     result.items(items);
@@ -63,7 +63,7 @@
                 var value = parameters[field];
                 if (ko.isObservable(value) && !ko.isComputed(value)) {
                     obj[field] = ko.unwrap(value);
-                };
+                }
         }
             sessionStorage.setItem(key + name, JSON.stringify(obj));
         }
@@ -173,6 +173,7 @@
         },
         init: function (element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
             var $element = $(element),
+                subscriptions = [],
                 binding = $.extend({}, ko.bindingHandlers.datatables.defaults, valueAccessor()),
                 options = mergeOptions(binding),
                 scope = ko.utils.supressFeedbackScope();
@@ -181,8 +182,8 @@
 
             options.serverData = function (source, data) {
                 scope.supressFeedback(function () {
-                    var sortField = binding.columns[data.order[0].column].data(undefined, 'sort'),
-                        sortOrder = data.order[0].dir;
+                    var sortField = data.order && binding.columns[data.order[0].column].data(undefined, 'sort'),
+                        sortOrder = data.order && data.order[0].dir;
 
                     binding.datasource.parameters.skip(data.start);
                     binding.datasource.parameters.top(data.length);
@@ -205,7 +206,7 @@
 
             $element.dataTable(options).on('column-reorder', onColumnReorder);
 
-            binding.datasource.result.items.subscribe(function (newItems) {
+            subscriptions.push(binding.datasource.result.items.subscribe(function (newItems) {
                 var dataTable = $element.dataTable();
                 var api = dataTable.api();
 
@@ -223,19 +224,22 @@
                     iTotalDisplayRecords: binding.datasource.result.totalRows()
                 });
                 $element.trigger('reloaded');
-            });
-            binding.datasource.parameters.skip.subscribe(function (newSkip) {
+            }));
+            subscriptions.push(binding.datasource.parameters.skip.subscribe(function (newSkip) {
                 scope.supressFeedback(function () {
                     var parameters = binding.datasource.parameters;
                     var api = $element.dataTable().api();
                     api.page(newSkip / parameters.top()).draw(false);
                 });
-            });
+            }));
             if (binding.loadingTemplate) {
-                binding.datasource.fetchInProgress.subscribe(toggleLoading);
+                subscriptions.push(binding.datasource.fetchInProgress.subscribe(toggleLoading));
             }
 
             ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
+                for (var i = 0; i < subscriptions.length; i++) {
+                    subscriptions[i].dispose();
+                }
                 $element.dataTable().api().destroy();
             });
 
@@ -358,8 +362,8 @@
                             }
                         };
                     }
-                    binding.selected.subscribe(toggleRow('fnDeselect'), null, 'beforeChange');
-                    binding.selected.subscribe(toggleRow('fnSelect'));
+                    subscriptions.push(binding.selected.subscribe(toggleRow('fnDeselect'), null, 'beforeChange'));
+                    subscriptions.push(binding.selected.subscribe(toggleRow('fnSelect')));
                     $element.on('reloaded', function () {
                         binding.selected.valueHasMutated();
                     });
@@ -380,8 +384,8 @@
                     tableToolsSettings.sRowSelect = 'multi';
                     tableToolsSettings.fnRowSelected = toggle(true);
                     tableToolsSettings.fnRowDeselected = toggle(false);
-                    binding.datasource.result.items.filter(function (item) { return item[binding.selected]() === true; }).subscribe(toggleRow('fnSelect'));
-                    binding.datasource.result.items.filter(function (item) { return item[binding.selected]() === false; }).subscribe(toggleRow('fnDeselect'));
+                    subscriptions.push(binding.datasource.result.items.filter(function (item) { return item[binding.selected]() === true; }).subscribe(toggleRow('fnSelect')));
+                    subscriptions.push(binding.datasource.result.items.filter(function (item) { return item[binding.selected]() === false; }).subscribe(toggleRow('fnDeselect')));
                 }
 
                 return tableToolsSettings;
@@ -396,11 +400,11 @@
                                 $body.height($.proxy(binding.scrollY, $body)());
                             }
                         };
-                        $(window).resize(setScrollY);
-                        setTimeout(function () {
-                            $element.dataTable()._fnAdjustColumnSizing(true);
-                            setScrollY();
-                        }, 100);
+                            $(window).resize(setScrollY);
+                            setTimeout(function () {
+                                $element.dataTable()._fnAdjustColumnSizing(true);
+                                setScrollY();
+                            }, 100);
                         try {
                             return binding.scrollY() || 500;
                         }
@@ -482,7 +486,7 @@
                 var result = [];
                 for (var i = 0, j = arrayLikeObject.length; i < j; i++) {
                     result.push(arrayLikeObject[i]);
-                };
+                }
                 return result;
             }
         }
