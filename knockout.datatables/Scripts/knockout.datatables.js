@@ -399,15 +399,23 @@
                     if (typeof binding.scrollY === 'function') {
                         var setScrollY = function () {
                             var $body = $element.parent();
-                            if ($body.length > 0) {
-                                $body.height($.proxy(binding.scrollY, $body)());
+                            var $wrapper = $element.parents('.dataTables_wrapper');
+                            if ($wrapper.length > 0) {
+                                var headerHeight = $wrapper.find('.dataTables_scrollHead').height();
+                                var footerHeight = $wrapper.find('.dataTables_info').height();
+                                    $body.height($.proxy(binding.scrollY, $wrapper)() - headerHeight - footerHeight);
                             }
                         };
-                            $(window).resize(setScrollY);
+                        $(window).resize(setScrollY);
+                        if (window.ResizeSensor) {
+                            new ResizeSensor($element.parents('body > *'), setScrollY);
+                        }
+                        else {
                             setTimeout(function () {
                                 $element.dataTable()._fnAdjustColumnSizing(true);
                                 setScrollY();
                             }, 100);
+                        }
                         try {
                             return binding.scrollY() || 500;
                         }
