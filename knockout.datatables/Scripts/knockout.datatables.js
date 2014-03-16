@@ -42,7 +42,10 @@
                 }).always(function () {
                     inProgress(false);
                 });
-        }
+            }
+            else {
+                setTimeout(result.items.valueHasMutated, 0);
+            }
         }
 
         function load(name) {
