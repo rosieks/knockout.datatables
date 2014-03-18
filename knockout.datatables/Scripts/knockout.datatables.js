@@ -592,12 +592,14 @@
                 element.__resizeListeners__.splice(element.__resizeListeners__.indexOf(fn), 1);
                 if (!element.__resizeListeners__.length) {
                     element.removeEventListener('scroll', scrollListener);
-                    element.__resizeTriggers__ = !element.removeChild(element.__resizeTriggers__);
+                    if (element.__resizeTriggers__) {
+                        element.__resizeTriggers__ = !element.removeChild(element.__resizeTriggers__);
+                    }
                 }
             }
         }
 
-        $('head').append('<style>.resize-triggers{visibility:hidden;}.resize-triggers,.resize-triggers>div,.contract-trigger:before{content:" ";display:block;position:absolute;top:0;left:0;height:100%;width:100%;overflow:hidden;}.resize-triggers>div{background:#eee;overflow:auto;}.contract-trigger:before{width:200%;height:200%;}</style>');
+        $('head').append('<style>.resize-triggers{opacity:0;visibility:hidden;}.resize-triggers,.resize-triggers>div,.contract-trigger:before{content:" ";display:block;position:absolute;top:0;left:0;height:100%;width:100%;overflow:hidden;}.resize-triggers>div{background:#eee;overflow:auto;}.contract-trigger:before{width:200%;height:200%;}</style>');
 
     })();
 
