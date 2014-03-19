@@ -7,7 +7,7 @@
     <link href="Content/bootstrap/bootstrap-theme.css" rel="stylesheet" />
     <link href="Content/dataTables.scroller.css" rel="stylesheet" />
     <link href="Content/ColReorder.css" rel="stylesheet" />
-    <script src="Scripts/jquery-2.1.0.js"></script>
+    <script src="Scripts/jquery-2.1.0.min.js"></script>
     <script src="Scripts/jquery.dataTables.js"></script>
     <script src="Scripts/dataTables.scroller.js"></script>
     <script src="Scripts/dataTables.colReorder.js"></script>
@@ -29,13 +29,16 @@
     <!-- ko-vs-editor viewModel: vm -->
     <div>test</div>
     <div class="container">
-        <table id="test" class="table" data-bind="datatables: grid" width="100%"></table>
+        <div style="width: 200px;">
+            <table id="test" class="table" data-bind="datatables: grid" width="100%"></table>
+        </div>
         <!--<ul data-bind="foreach: grid.datasource.items">
             <li data-bind="text: Id" />
         </ul>-->
         <div>Zaznaczony element ma ID: <!-- ko text: grid.selected() && grid.selected().Id --><!-- /ko --></div>
         <button data-bind="click: select">Test</button>
         <button data-bind="click: move">Move</button>
+        <button data-bind="click: hide">Hide</button>
     </div>
     <script type="text/html" id="loader">
         <div style="background: white;"><div style="top: 50%; position: absolute; width: 100%; text-align: center;">Ładowanie</div></div>
@@ -79,6 +82,10 @@
                 //var api = $('#test').dataTable().api();
                 //api.page(2).draw(false);
                 this.grid.datasource.parameters.skip(0);
+            },
+            hide: function () {
+                var api = $('#test').dataTable().api();
+                api.column(1).visible(false);
             }
         };
 

@@ -1,4 +1,4 @@
-﻿// Knockout DataTables 0.2.0
+﻿// Knockout DataTables 0.2.1
 // (c) Sławomir Rosiek - https://github.com/rosieks/knockout.datatables
 // License: MIT (http://www.opensource.org/licenses/mit-license.php)
 
@@ -42,8 +42,7 @@
                 }).always(function () {
                     inProgress(false);
                 });
-            }
-            else {
+            } else {
                 setTimeout(result.items.valueHasMutated, 0);
             }
         }
@@ -109,11 +108,9 @@
                     items.sort(function (i, j) {
                         if (ko.unwrap(i[sortField]) < ko.unwrap(j[sortField])) {
                             return sortMultiplier;
-                        }
-                        else if (ko.unwrap(i[sortField]) > ko.unwrap(j[sortField])) {
+                        } else if (ko.unwrap(i[sortField]) > ko.unwrap(j[sortField])) {
                             return -sortMultiplier;
-                        }
-                        else {
+                        } else {
                             return 0;
                         }
                     });
@@ -131,8 +128,7 @@
         var args;
         if (arguments.length === 2 || arguments.length === 1 && typeof (name) === 'string') {
             args = { name: name, displayName: displayName };
-        }
-        else {
+        } else {
             args = name;
         }
 
@@ -146,14 +142,11 @@
         function propertyGetter(source, type) {
             if (type === 'display') {
                 return args.name || '$data';
-            }
-            else if (type === 'filter' || type === 'sort') {
+            } else if (type === 'filter' || type === 'sort') {
                 return args.name;
-            }
-            else if (type === 'set') {
+            } else if (type === 'set') {
                 return;
-            }
-            else {
+            } else {
                 return function () { return source[args.name] || source; };
             }
         }
@@ -163,8 +156,7 @@
                 if (type === 'display') {
                     // HACK: To avoid unnecessary rendering in _fnCreateTr and increase performance don't return any result.
                     return '';
-                }
-                else {
+                } else {
                     return value || '<td data-bind="text: ' + (bindingField || '$data') + '"></td>';
                 }
             };
@@ -207,7 +199,9 @@
                 return row;
             };
 
-            $element.dataTable(options).on('column-reorder', onColumnReorder);
+            $element.dataTable(options)
+                .on('column-visibility.dt', onColumnDefinitionChanged)
+                .on('column-reorder', onColumnDefinitionChanged);
 
             subscriptions.push(binding.datasource.result.items.subscribe(function (newItems) {
                 var dataTable = $element.dataTable();
@@ -263,7 +257,9 @@
                 var $row = $('<tr>');
 
                 ko.utils.arrayForEach(columns, function (column) {
-                    $row.append(column.render());
+                    if (column.bVisible !== false) {
+                        $row.append(column.render());
+                    }
                 });
 
                 var templateNodes = $row[0].childNodes,
@@ -344,8 +340,7 @@
                         tableToolsSettings.sRowSelect = 'multi';
                         tableToolsSettings.fnRowDeselected = toggle('remove');
                         tableToolsSettings.fnRowSelected = toggle('push');
-                    }
-                    else {
+                    } else {
                         tableToolsSettings.sRowSelect = 'single';
                         tableToolsSettings.fnRowDeselected = function (nodes) {
                             if (binding.selected() && binding.selected() === rowData(nodes[0])) {
@@ -370,8 +365,7 @@
                     $element.on('reloaded', function () {
                         binding.selected.valueHasMutated();
                     });
-                }
-                else if (typeof binding.selected === 'string') {
+                } else if (typeof binding.selected === 'string') {
                     toggle = function (value) {
                         return function (nodes) {
                             var items = nodes instanceof Array ? nodes : [nodes];
@@ -418,15 +412,15 @@
                         catch (err) {
                             return 500;
                         }
-                    }
-                    else {
+                    } else {
                         return binding.scrollY;
                     }
                 }
             }
 
-            function onColumnReorder(a, b, c) {
-                //createRowTemplate()
+            function onColumnDefinitionChanged(e, settings) {
+                createRowTemplate(settings.aoColumns);
+                $element.dataTable().api().draw(false);
             }
 
             function mergeOptions(binding) {
@@ -472,8 +466,7 @@
                     var scrollTop = $parent.scrollTop();
                     var height = $parent.height();
                     $loader.css({ top: scrollTop, height: height }).show();
-                }
-                else {
+                } else {
                     $loader.hide();
                 }
             }
@@ -533,46 +526,16 @@
                              window.clearTimeout;
                 return function (id) { return cancel(id); };
             })();
-
-            function resetTriggers(element) {
-                var triggers = element.__resizeTriggers__,
-                    expand = triggers.firstElementChild,
-                    contract = triggers.lastElementChild,
-                    expandChild = expand.firstElementChild;
-                contract.scrollLeft = contract.scrollWidth;
-                contract.scrollTop = contract.scrollHeight;
-                expandChild.style.width = expand.offsetWidth + 1 + 'px';
-                expandChild.style.height = expand.offsetHeight + 1 + 'px';
-                expand.scrollLeft = expand.scrollWidth;
-                expand.scrollTop = expand.scrollHeight;
-            };
-
-            function checkTriggers(element) {
-                return element.offsetWidth != element.__resizeLast__.width ||
-                       element.offsetHeight != element.__resizeLast__.height;
-            }
-
-            function scrollListener(e) {
-                var element = this;
-                resetTriggers(this);
-                if (this.__resizeRAF__) cancelFrame(this.__resizeRAF__);
-                this.__resizeRAF__ = requestFrame(function () {
-                    if (checkTriggers(element)) {
-                        element.__resizeLast__.width = element.offsetWidth;
-                        element.__resizeLast__.height = element.offsetHeight;
-                        element.__resizeListeners__.forEach(function (fn) {
-                            fn.call(element, e);
-                        });
-                    }
-                });
-            };
         }
 
         window.addResizeListener = function (element, fn) {
-            if (attachEvent) element.attachEvent('resize', fn);
-            else {
+            if (attachEvent) {
+                element.attachEvent('resize', fn);
+            } else {
                 if (!element.__resizeTriggers__) {
-                    if (getComputedStyle(element).position == 'static') element.style.position = 'relative';
+                    if (getComputedStyle(element).position == 'static') {
+                        element.style.position = 'relative';
+                    }
                     element.__resizeLast__ = {};
                     element.__resizeListeners__ = [];
                     (element.__resizeTriggers__ = document.createElement('div')).className = 'resize-triggers';
@@ -587,8 +550,9 @@
         };
 
         window.removeResizeListener = function (element, fn) {
-            if (attachEvent) element.detachEvent('resize', fn);
-            else {
+            if (attachEvent) {
+                element.detachEvent('resize', fn);
+            } else {
                 element.__resizeListeners__.splice(element.__resizeListeners__.indexOf(fn), 1);
                 if (!element.__resizeListeners__.length) {
                     element.removeEventListener('scroll', scrollListener);
@@ -597,9 +561,44 @@
                     }
                 }
             }
-        }
+        };
 
         $('head').append('<style>.resize-triggers{opacity:0;visibility:hidden;}.resize-triggers,.resize-triggers>div,.contract-trigger:before{content:" ";display:block;position:absolute;top:0;left:0;height:100%;width:100%;overflow:hidden;}.resize-triggers>div{background:#eee;overflow:auto;}.contract-trigger:before{width:200%;height:200%;}</style>');
+
+        function resetTriggers(element) {
+            var triggers = element.__resizeTriggers__,
+                expand = triggers.firstElementChild,
+                contract = triggers.lastElementChild,
+                expandChild = expand.firstElementChild;
+            contract.scrollLeft = contract.scrollWidth;
+            contract.scrollTop = contract.scrollHeight;
+            expandChild.style.width = expand.offsetWidth + 1 + 'px';
+            expandChild.style.height = expand.offsetHeight + 1 + 'px';
+            expand.scrollLeft = expand.scrollWidth;
+            expand.scrollTop = expand.scrollHeight;
+        }
+
+        function checkTriggers(element) {
+            return element.offsetWidth != element.__resizeLast__.width ||
+                   element.offsetHeight != element.__resizeLast__.height;
+        }
+
+        function scrollListener(e) {
+            var element = this;
+            resetTriggers(this);
+            if (this.__resizeRAF__) {
+                cancelFrame(this.__resizeRAF__);
+            }
+            this.__resizeRAF__ = requestFrame(function () {
+                if (checkTriggers(element)) {
+                    element.__resizeLast__.width = element.offsetWidth;
+                    element.__resizeLast__.height = element.offsetHeight;
+                    element.__resizeListeners__.forEach(function (fn) {
+                        fn.call(element, e);
+                    });
+                }
+            });
+        }
 
     })();
 
