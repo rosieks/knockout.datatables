@@ -1,4 +1,4 @@
-﻿// Knockout DataTables 0.2.1
+﻿// Knockout DataTables 0.2.2
 // (c) Sławomir Rosiek - https://github.com/rosieks/knockout.datatables
 // License: MIT (http://www.opensource.org/licenses/mit-license.php)
 
@@ -6,13 +6,14 @@
 
 (function ($, ko) {
     ko.gridModel = function (requestData) {
-        var key = '__ko_gridModel_';
+        var parametersKey = '__ko_gridModel_';
         var parameters = {
             skip: ko.observable(0),
             top: ko.observable(20),
             sortField: ko.observable(),
             sortOrder: ko.observable('ASC')
         },
+        key = ko.observable('Id'),
         inProgress = ko.observable(false),
         lastParameters = clone(parameters),
         canFetch = ko.observable(false),
@@ -26,7 +27,8 @@
             load: load,
             store: store,
             fetch: fetch,
-            fetchInProgress: inProgress
+            fetchInProgress: inProgress,
+            key: key
         };
 
         return model;
@@ -48,7 +50,7 @@
         }
 
         function load(name) {
-            var obj = JSON.parse(sessionStorage.getItem(key + name));
+            var obj = JSON.parse(sessionStorage.getItem(parametersKey + name));
             for (var field in obj) {
                 var value = parameters[field];
                 if (ko.isWriteableObservable(value) && !ko.isComputed(value)) {
@@ -67,7 +69,7 @@
                     obj[field] = ko.unwrap(value);
                 }
         }
-            sessionStorage.setItem(key + name, JSON.stringify(obj));
+            sessionStorage.setItem(parametersKey + name, JSON.stringify(obj));
         }
 
         function fetch(options) {
@@ -291,6 +293,23 @@
                     var td = row && row.cells[0];
                     return td && ko.dataFor(td);
                 },
+                resetSelected = function (items) {
+                    if (binding.selected()) {
+                        if (binding.selected.length) {
+
+                        } else {
+                            var key = ko.unwrap(binding.datasource.key),
+                                selectedKey = ko.unwrap(binding.selected()[key]),
+                                selected = ko.utils.arrayFirst(items, function (item) {
+                                    return ko.unwrap(item[key]) === selectedKey;
+                                });
+
+                            if (selected) {
+                                binding.selected(selected);
+                            }
+                        }
+                    }
+                },
                 toggleRow = function (method) {
                     return function (elements) {
                         if (elements) {
@@ -360,6 +379,7 @@
                             }
                         };
                     }
+                    subscriptions.push(binding.datasource.result.items.subscribe(resetSelected));
                     subscriptions.push(binding.selected.subscribe(toggleRow('fnDeselect'), null, 'beforeChange'));
                     subscriptions.push(binding.selected.subscribe(toggleRow('fnSelect')));
                     $element.on('reloaded', function () {

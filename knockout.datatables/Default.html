@@ -29,7 +29,7 @@
     <!-- ko-vs-editor viewModel: vm -->
     <div>test</div>
     <div class="container">
-        <div style="width: 200px;">
+        <div>
             <table id="test" class="table" data-bind="datatables: grid" width="100%"></table>
         </div>
         <!--<ul data-bind="foreach: grid.datasource.items">
@@ -48,7 +48,36 @@
         for (var i = 0; i < 1000; i++) {
             data.push({ Id: ko.observable(i), Name: 'Lorem ipsum ' + i, Code: parseInt(Math.random() * 100), IsSelected: ko.observable(false), Group: Math.ceil(i / 3) });
         }
-        var items = ko.gridModel.inMemory(data).load('test2');
+        var items = (function (items) {
+            return ko.gridModel(function () {
+                var dfd = $.Deferred();
+                var start = this.skip(),
+                    end = this.skip() + this.top(),
+                    sortField = this.sortField(),
+                    sortMultiplier = this.sortOrder() === 'asc' ? -1 : 1;
+
+                setTimeout(function () {
+                    console.log('request');
+                    var result = [];
+                    items.sort(function (i, j) {
+                        if (ko.unwrap(i[sortField]) < ko.unwrap(j[sortField])) {
+                            return sortMultiplier;
+                        } else if (ko.unwrap(i[sortField]) > ko.unwrap(j[sortField])) {
+                            return -sortMultiplier;
+                        } else {
+                            return 0;
+                        }
+                    });
+
+                    for (var i = start; i < end && i < items.length; i++) {
+                        result.push($.extend({}, items[i]));
+                    }
+
+                    dfd.resolve(result, items.length);
+                }, 0);
+                return dfd;
+            });
+        })(data).load('test2');
         var vm = {
             grid: {
                 datasource: items,
