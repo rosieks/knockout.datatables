@@ -411,13 +411,20 @@
             function setupHeight(binding) {
                 if (binding.scrollY) {
                     if (typeof binding.scrollY === 'function') {
+                        var timeoutHandle;
                         var setScrollY = function () {
                             var $body = $element.parent();
                             var $wrapper = $element.parents('.dataTables_wrapper');
                             if ($wrapper.length > 0) {
                                 var headerHeight = $wrapper.find('.dataTables_scrollHead').height();
                                 var footerHeight = $wrapper.find('.dataTables_info').height();
-                                    $body.height($.proxy(binding.scrollY, $wrapper)() - headerHeight - footerHeight);
+                                $body.height($.proxy(binding.scrollY, $wrapper)() - headerHeight - footerHeight);
+                                if (timeoutHandle) {
+                                    clearTimeout(timeoutHandle);
+                                }
+                                timeoutHandle = setTimeout(function () {
+                                    $element.dataTable().fnSettings().oScroller.fnMeasure(false);
+                                }, 100);
                             }
                         },
                         container = $element.parents('body > *')[0];
