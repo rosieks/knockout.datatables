@@ -107,21 +107,21 @@
 
             setTimeout(function () {
                 var result = [];
-                    items.sort(function (i, j) {
-                        if (ko.unwrap(i[sortField]) < ko.unwrap(j[sortField])) {
-                            return sortMultiplier;
-                        } else if (ko.unwrap(i[sortField]) > ko.unwrap(j[sortField])) {
-                            return -sortMultiplier;
-                        } else {
-                            return 0;
-                        }
-                    });
+                items.sort(function (i, j) {
+                    if (ko.unwrap(i[sortField]) < ko.unwrap(j[sortField])) {
+                        return sortMultiplier;
+                    } else if (ko.unwrap(i[sortField]) > ko.unwrap(j[sortField])) {
+                        return -sortMultiplier;
+                    } else {
+                        return 0;
+                    }
+                });
 
-                for (var i = start; i < end && i < items.length; i++) {
-                    result.push(items[i]);
+                for (var i = start, j = ko.unwrap(items).length; i < end && i < j; i++) {
+                    result.push($.extend({}, ko.unwrap(items)[i]));
                 }
 
-                dfd.resolve(result, items.length);
+                dfd.resolve(result, ko.unwrap(items).length);
             }, 0);
             return dfd;
         });
